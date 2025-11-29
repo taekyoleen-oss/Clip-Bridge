@@ -53,9 +53,13 @@ export default function Home() {
     clipboardManager.onTimerCompleteCallback(async (text: string) => {
       if (text && text.trim().length > 0) {
         try {
-          await dbManager.saveClip(text, currentPlatform);
-        } catch (error) {
-          console.error("저장 실패:", error);
+          console.log("💾 저장 시작:", text.substring(0, 50));
+          const clipId = await dbManager.saveClip(text, currentPlatform);
+          console.log("✅ 저장 완료:", clipId);
+        } catch (error: any) {
+          console.error("❌ 저장 실패:", error);
+          // 사용자에게 오류 알림
+          alert(`저장에 실패했습니다: ${error.message || "알 수 없는 오류"}\n\n브라우저 콘솔(F12)에서 자세한 오류를 확인하세요.`);
         }
       }
       // Toast 닫기 (저장 성공 여부와 관계없이)

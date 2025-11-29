@@ -51,7 +51,12 @@ export class DatabaseManager {
     }
 
     if (!supabase) {
-      throw new Error("Supabase 클라이언트가 초기화되지 않았습니다.");
+      const errorMsg = "Supabase 클라이언트가 초기화되지 않았습니다. 환경 변수를 확인하세요.";
+      console.error("❌", errorMsg);
+      console.error("환경 변수 확인:");
+      console.error("- NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL ? "설정됨" : "없음");
+      console.error("- NEXT_PUBLIC_SUPABASE_ANON_KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "설정됨" : "없음");
+      throw new Error(errorMsg);
     }
 
     const clipData = {
@@ -62,6 +67,12 @@ export class DatabaseManager {
       is_synced: true,
     };
 
+    console.log("📤 Supabase에 저장 시도:", {
+      user_id: this.userId,
+      device: device,
+      text_length: text.length,
+    });
+
     const { data, error } = await supabase
       .from("clips")
       .insert(clipData)
@@ -69,10 +80,17 @@ export class DatabaseManager {
       .single();
 
     if (error) {
-      console.error("클립 저장 오류:", error);
-      throw error;
+      console.error("❌ 클립 저장 오류:", error);
+      console.error("오류 상세:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      throw new Error(`저장 실패: ${error.message || "알 수 없는 오류"}`);
     }
 
+    console.log("✅ 저장 성공:", data.id);
     return data.id;
   }
 
