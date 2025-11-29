@@ -7,7 +7,9 @@ import { ClipData } from "@/lib/clipboard";
 import Toast from "@/components/Toast";
 import ClipList from "@/components/ClipList";
 import ClipboardPermission from "@/components/ClipboardPermission";
+import SupabaseStatus from "@/components/SupabaseStatus";
 import DeviceTabs, { DeviceFilter } from "@/components/DeviceTabs";
+import ManualInput from "@/components/ManualInput";
 import { getHeartbeat } from "@/lib/heartbeat";
 import { detectPlatform } from "@/lib/platform";
 
@@ -23,6 +25,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<DeviceFilter>("all");
   const [windowsCount, setWindowsCount] = useState(0);
   const [androidCount, setAndroidCount] = useState(0);
+  const [backgroundSaveMessage, setBackgroundSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Supabase Heartbeat 시작 (프로젝트 일시 중지 방지)
@@ -73,6 +76,24 @@ export default function Home() {
       setShowToast(false);
       setPendingText("");
       setCountdown(10);
+    });
+
+    // 백그라운드 저장 알림
+    clipboardManager.onBackgroundSaveCallback((message: string) => {
+      // 백그라운드에서 저장된 클립이 있으면 알림 표시
+      console.log("📋", message);
+      setBackgroundSaveMessage(message);
+      // 5초 후 알림 자동 제거
+      setTimeout(() => {
+        setBackgroundSaveMessage(null);
+      }, 5000);
+      // 통계 업데이트
+      const updateStats = async () => {
+        const stats = await dbManager.getClipStats();
+        setWindowsCount(stats.windowsCount);
+        setAndroidCount(stats.androidCount);
+      };
+      updateStats();
     });
 
     // 통계 정보 로드
@@ -152,6 +173,22 @@ export default function Home() {
     }
   };
 
+  const handleManualSave = async (text: string, device: "Windows" | "Android") => {
+    try {
+      console.log("💾 수동 저장 시작:", text.substring(0, 50), "Device:", device);
+      const clipId = await dbManager.saveClip(text, device);
+      console.log("✅ 수동 저장 완료:", clipId);
+      
+      // 통계 업데이트
+      const stats = await dbManager.getClipStats();
+      setWindowsCount(stats.windowsCount);
+      setAndroidCount(stats.androidCount);
+    } catch (error: any) {
+      console.error("❌ 수동 저장 실패:", error);
+      throw error; // 에러를 다시 throw하여 ManualInput 컴포넌트에서 처리
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
@@ -164,7 +201,22 @@ export default function Home() {
           </p>
         </header>
 
+        <SupabaseStatus />
         <ClipboardPermission />
+
+        {backgroundSaveMessage && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center justify-between animate-fade-in">
+            <span className="text-blue-800 text-sm">✅ {backgroundSaveMessage}</span>
+            <button
+              onClick={() => setBackgroundSaveMessage(null)}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              닫기
+            </button>
+          </div>
+        )}
+
+        <ManualInput onSave={handleManualSave} currentPlatform={currentPlatform} />
 
         <DeviceTabs
           activeTab={activeTab}

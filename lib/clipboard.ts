@@ -13,19 +13,69 @@ export class ClipboardManager {
   private onTimerUpdate: ((seconds: number) => void) | null = null;
   private onTimerComplete: ((text: string) => void) | null = null;
   private onTimerCancel: (() => void) | null = null;
+  private onBackgroundSave: ((text: string) => void) | null = null;
   private currentSeconds: number = 10;
   private isPaused: boolean = false;
   private currentClipText: string = "";
+  private isPageVisible: boolean = true;
+  private checkInterval: NodeJS.Timeout | null = null;
+  private backgroundSavedClips: string[] = [];
 
   constructor() {
     if (typeof window !== "undefined") {
+      this.setupVisibilityListener();
       this.startListening();
     }
   }
 
+  private setupVisibilityListener() {
+    // Page Visibility API로 페이지 가시성 감지
+    document.addEventListener("visibilitychange", () => {
+      const wasVisible = this.isPageVisible;
+      this.isPageVisible = !document.hidden;
+
+      // 백그라운드에서 포그라운드로 전환 시
+      if (!wasVisible && this.isPageVisible) {
+        this.handlePageVisible();
+      }
+    });
+
+    // Window focus 이벤트로도 감지 (다른 앱에서 돌아올 때)
+    window.addEventListener("focus", () => {
+      if (this.isPageVisible) {
+        // 약간의 지연을 두어 클립보드가 업데이트될 시간을 줌
+        setTimeout(() => {
+          this.checkClipboard();
+        }, 200);
+      }
+    });
+
+    // 초기 상태 설정
+    this.isPageVisible = !document.hidden;
+  }
+
+  private handlePageVisible() {
+    // 포그라운드로 전환 시 클립보드 즉시 체크
+    // 다른 앱(워드 등)에서 복사한 내용을 감지하기 위해
+    setTimeout(() => {
+      this.checkClipboard();
+    }, 100); // 약간의 지연을 두어 브라우저가 완전히 활성화된 후 체크
+    
+    // 백그라운드에서 저장된 클립이 있으면 알림
+    if (this.backgroundSavedClips.length > 0) {
+      const savedCount = this.backgroundSavedClips.length;
+      this.backgroundSavedClips = [];
+      console.log(`✅ 백그라운드에서 ${savedCount}개의 클립이 저장되었습니다.`);
+      // 필요시 사용자에게 알림 표시
+      if (this.onBackgroundSave) {
+        this.onBackgroundSave(`${savedCount}개의 클립이 백그라운드에서 저장되었습니다.`);
+      }
+    }
+  }
+
   private startListening() {
-    // 클립보드 변경 감지 (주기적 체크)
-    setInterval(() => {
+    // 클립보드 변경 감지 (주기적 체크) - 백그라운드에서도 계속 작동
+    this.checkInterval = setInterval(() => {
       this.checkClipboard();
     }, 500);
   }
@@ -65,6 +115,17 @@ export class ClipboardManager {
     // 현재 클립 텍스트 저장
     this.currentClipText = text;
 
+    // 페이지가 백그라운드에 있으면 자동 저장 (Toast 없이)
+    if (!this.isPageVisible) {
+      console.log("📋 백그라운드에서 클립 감지, 자동 저장:", text.substring(0, 50));
+      // 백그라운드에서는 즉시 저장
+      this.backgroundSavedClips.push(text);
+      this.onTimerComplete?.(text);
+      this.currentClipText = "";
+      return;
+    }
+
+    // 포그라운드에서는 기존 로직 (Toast 표시)
     // 복사 감지 즉시 Toast 표시 (취소 버튼 생성)
     this.currentSeconds = 10;
     this.onClipDetected?.(text);
@@ -73,6 +134,20 @@ export class ClipboardManager {
 
     // 복사 시점부터 10초 카운트다운 시작
     this.timerId = setInterval(() => {
+      // 백그라운드로 전환되면 타이머 중지하고 자동 저장
+      if (!this.isPageVisible) {
+        if (this.timerId) {
+          clearInterval(this.timerId);
+          this.timerId = null;
+        }
+        console.log("📋 백그라운드 전환, 자동 저장:", this.currentClipText.substring(0, 50));
+        this.backgroundSavedClips.push(this.currentClipText);
+        this.onTimerComplete?.(this.currentClipText);
+        this.currentClipText = "";
+        this.currentSeconds = 10;
+        return;
+      }
+
       this.currentSeconds--;
       
       if (this.currentSeconds <= 0) {
@@ -142,8 +217,24 @@ export class ClipboardManager {
     this.onTimerCancel = callback;
   }
 
+  onBackgroundSaveCallback(callback: (message: string) => void) {
+    this.onBackgroundSave = callback;
+  }
+
   getCurrentSeconds(): number {
     return this.currentSeconds;
+  }
+
+  // 정리 메서드
+  destroy() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+    if (this.timerId) {
+      clearInterval(this.timerId);
+      this.timerId = null;
+    }
   }
 }
 
