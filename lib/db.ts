@@ -45,7 +45,7 @@ export class DatabaseManager {
     return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  async saveClip(text: string, device: string = "PC-Web"): Promise<string> {
+  async saveClip(text: string, device: string = "Windows"): Promise<string> {
     if (!this.userId) {
       await this.initializeAuth();
     }
@@ -76,10 +76,13 @@ export class DatabaseManager {
     return data.id;
   }
 
-  subscribeToClips(callback: (clips: ClipData[]) => void) {
+  subscribeToClips(
+    callback: (clips: ClipData[]) => void,
+    deviceFilter?: "all" | "Windows" | "Android"
+  ) {
     if (!this.userId) {
       this.initializeAuth().then(() => {
-        this.subscribeToClips(callback);
+        this.subscribeToClips(callback, deviceFilter);
       });
       return () => {};
     }
@@ -90,7 +93,7 @@ export class DatabaseManager {
     }
 
     // 초기 데이터 로드
-    this.loadClips(callback);
+    this.loadClips(callback, deviceFilter);
 
     // 실시간 구독 설정
     const channel = supabase
@@ -105,7 +108,7 @@ export class DatabaseManager {
         },
         (payload) => {
           // 변경사항 발생 시 데이터 다시 로드
-          this.loadClips(callback);
+          this.loadClips(callback, deviceFilter);
         }
       )
       .subscribe();
@@ -115,15 +118,25 @@ export class DatabaseManager {
     };
   }
 
-  private async loadClips(callback: (clips: ClipData[]) => void) {
+  private async loadClips(
+    callback: (clips: ClipData[]) => void,
+    deviceFilter?: "all" | "Windows" | "Android"
+  ) {
     if (!supabase || !this.userId) return;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("clips")
       .select("*")
       .eq("user_id", this.userId!)
       .order("timestamp", { ascending: false })
       .limit(100);
+
+    // device 필터 적용
+    if (deviceFilter && deviceFilter !== "all") {
+      query = query.eq("device", deviceFilter);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("클립 로드 오류:", error);
@@ -141,6 +154,31 @@ export class DatabaseManager {
     }));
 
     callback(clips);
+  }
+
+  // 통계 정보 가져오기
+  async getClipStats(): Promise<{ windowsCount: number; androidCount: number }> {
+    if (!supabase || !this.userId) {
+      return { windowsCount: 0, androidCount: 0 };
+    }
+
+    const [windowsResult, androidResult] = await Promise.all([
+      supabase
+        .from("clips")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", this.userId!)
+        .eq("device", "Windows"),
+      supabase
+        .from("clips")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", this.userId!)
+        .eq("device", "Android"),
+    ]);
+
+    return {
+      windowsCount: windowsResult.count || 0,
+      androidCount: androidResult.count || 0,
+    };
   }
 
   async deleteClip(clipId: string): Promise<void> {

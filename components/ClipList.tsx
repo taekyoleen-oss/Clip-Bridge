@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { ClipData } from "@/lib/clipboard";
 import { Copy, Share2, Trash2, Clock } from "lucide-react";
 import { format } from "date-fns";
@@ -20,6 +21,15 @@ export default function ClipList({
   onDelete,
   isMobile,
 }: ClipListProps) {
+  const [hasShareAPI, setHasShareAPI] = useState(false);
+
+  useEffect(() => {
+    // 클라이언트 사이드에서만 navigator.share 체크
+    if (typeof window !== "undefined" && "share" in navigator) {
+      setHasShareAPI(true);
+    }
+  }, []);
+
   if (clips.length === 0) {
     return <EmptyState />;
   }
@@ -56,7 +66,7 @@ export default function ClipList({
               >
                 <Copy className="w-5 h-5" />
               </button>
-              {navigator.share && (
+              {hasShareAPI && (
                 <button
                   onClick={() => onShare(clip.text)}
                   className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"

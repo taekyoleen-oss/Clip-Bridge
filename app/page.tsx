@@ -7,7 +7,9 @@ import { ClipData } from "@/lib/clipboard";
 import Toast from "@/components/Toast";
 import ClipList from "@/components/ClipList";
 import ClipboardPermission from "@/components/ClipboardPermission";
+import DeviceTabs, { DeviceFilter } from "@/components/DeviceTabs";
 import { getHeartbeat } from "@/lib/heartbeat";
+import { detectPlatform } from "@/lib/platform";
 
 export default function Home() {
   const [clipboardManager] = useState(() => new ClipboardManager());
@@ -17,19 +19,19 @@ export default function Home() {
   const [countdown, setCountdown] = useState(10);
   const [pendingText, setPendingText] = useState("");
   const [clips, setClips] = useState<ClipData[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
+  const [currentPlatform, setCurrentPlatform] = useState<"Windows" | "Android">("Windows");
+  const [activeTab, setActiveTab] = useState<DeviceFilter>("all");
+  const [windowsCount, setWindowsCount] = useState(0);
+  const [androidCount, setAndroidCount] = useState(0);
 
   useEffect(() => {
     // Supabase Heartbeat 시작 (프로젝트 일시 중지 방지)
     const heartbeat = getHeartbeat();
     heartbeat.start();
 
-    // 모바일 감지
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
+    // 플랫폼 감지
+    const platform = detectPlatform();
+    setCurrentPlatform(platform === "Android" ? "Android" : "Windows");
 
     // 클립보드 감지 이벤트
     clipboardManager.onClipDetectedCallback((text) => {
@@ -46,8 +48,7 @@ export default function Home() {
     // 타이머 완료 (저장)
     clipboardManager.onTimerCompleteCallback(async () => {
       if (pendingText) {
-        const device = isMobile ? "Mobile" : "PC-Web";
-        await dbManager.saveClip(pendingText, device);
+        await dbManager.saveClip(pendingText, currentPlatform);
         setShowToast(false);
         setPendingText("");
         setCountdown(10);
@@ -61,17 +62,42 @@ export default function Home() {
       setCountdown(10);
     });
 
-    // 데이터베이스 구독
-    const unsubscribe = dbManager.subscribeToClips((newClips) => {
-      setClips(newClips);
-    });
+    // 통계 정보 로드
+    const loadStats = async () => {
+      const stats = await dbManager.getClipStats();
+      setWindowsCount(stats.windowsCount);
+      setAndroidCount(stats.androidCount);
+    };
+
+    loadStats();
 
     return () => {
-      window.removeEventListener("resize", checkMobile);
-      unsubscribe();
       heartbeat.stop();
     };
-  }, [clipboardManager, dbManager, pendingText, isMobile]);
+  }, [clipboardManager, dbManager, pendingText, currentPlatform]);
+
+  // 탭 변경 시 데이터 다시 로드
+  useEffect(() => {
+    // 통계 정보 로드
+    const loadStats = async () => {
+      const stats = await dbManager.getClipStats();
+      setWindowsCount(stats.windowsCount);
+      setAndroidCount(stats.androidCount);
+    };
+
+    loadStats();
+
+    // 데이터베이스 구독 (device 필터 적용)
+    const unsubscribe = dbManager.subscribeToClips((newClips) => {
+      setClips(newClips);
+      // 통계도 업데이트
+      loadStats();
+    }, activeTab);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [activeTab, dbManager]);
 
   const handleSaveImmediately = () => {
     clipboardManager.saveImmediately();
@@ -93,7 +119,7 @@ export default function Home() {
   };
 
   const handleShare = async (text: string) => {
-    if (navigator.share) {
+    if (typeof window !== "undefined" && "share" in navigator) {
       try {
         await navigator.share({
           text: text,
@@ -127,12 +153,19 @@ export default function Home() {
 
         <ClipboardPermission />
 
+        <DeviceTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          windowsCount={windowsCount}
+          androidCount={androidCount}
+        />
+
         <ClipList
           clips={clips}
           onCopy={handleCopy}
           onShare={handleShare}
           onDelete={handleDelete}
-          isMobile={isMobile}
+          isMobile={currentPlatform === "Android"}
         />
       </div>
 
