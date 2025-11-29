@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { CheckCircle, XCircle } from "lucide-react";
+import { getSupabaseClient } from "@/lib/supabase";
 
 export default function SupabaseStatus() {
   const [status, setStatus] = useState<"checking" | "ok" | "error">("checking");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    const checkSupabase = () => {
+    const checkSupabase = async () => {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -19,31 +19,26 @@ export default function SupabaseStatus() {
         return;
       }
 
-      if (!supabase) {
-        setStatus("error");
-        setErrorMessage("Supabase 클라이언트 초기화 실패");
-        return;
-      }
-
-      // 간단한 연결 테스트
-      (async () => {
-        try {
-          const { error } = await supabase
-            .from("clips")
-            .select("id", { count: "exact", head: true })
-            .limit(1);
-          
-          if (error) {
-            setStatus("error");
-            setErrorMessage(`연결 오류: ${error.message}`);
-          } else {
-            setStatus("ok");
-          }
-        } catch (err: any) {
+      try {
+        // getSupabaseClient를 사용하여 클라이언트 가져오기
+        const client = getSupabaseClient();
+        
+        // 간단한 연결 테스트
+        const { error } = await client
+          .from("clips")
+          .select("id", { count: "exact", head: true })
+          .limit(1);
+        
+        if (error) {
           setStatus("error");
-          setErrorMessage(`연결 실패: ${err.message}`);
+          setErrorMessage(`연결 오류: ${error.message}`);
+        } else {
+          setStatus("ok");
         }
-      })();
+      } catch (err: any) {
+        setStatus("error");
+        setErrorMessage(`연결 실패: ${err.message || "알 수 없는 오류"}`);
+      }
     };
 
     checkSupabase();
