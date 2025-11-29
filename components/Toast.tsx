@@ -1,6 +1,7 @@
 "use client";
 
-import { X, Save, Clock } from "lucide-react";
+import { X, Clock } from "lucide-react";
+import { useState } from "react";
 
 interface ToastProps {
   text: string;
@@ -15,55 +16,48 @@ export default function Toast({
   onSaveImmediately,
   onCancel,
 }: ToastProps) {
-  const previewText = text.length > 50 ? `${text.substring(0, 50)}...` : text;
+  const [isClosing, setIsClosing] = useState(false);
+  const previewText = text.length > 30 ? `${text.substring(0, 30)}...` : text;
+
+  const handleCancel = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onCancel();
+    }, 300); // 애니메이션 시간과 맞춤
+  };
 
   return (
-    <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-2xl p-6 max-w-md w-full z-50 animate-slide-up border border-gray-200">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-blue-600" />
-          <h3 className="font-semibold text-gray-800">저장 대기 중</h3>
-        </div>
-        <button
-          onClick={onCancel}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div
+      className={`
+        fixed bottom-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2.5 z-50 
+        border border-gray-200 flex items-center gap-3 min-w-[280px] max-w-[400px]
+        ${isClosing ? "animate-slide-down" : "animate-slide-up"}
+      `}
+    >
+      {/* 카운트다운 표시 */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Clock className="w-4 h-4 text-blue-600" />
+        <span className="text-sm font-semibold text-blue-600 min-w-[2rem]">
+          {countdown}초
+        </span>
       </div>
 
-      <div className="mb-4">
-        <p className="text-sm text-gray-600 mb-2">내용:</p>
-        <p className="text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 break-words">
+      {/* 텍스트 미리보기 */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-700 truncate" title={text}>
           {previewText}
         </p>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-            <span className="text-blue-600 font-bold text-sm">{countdown}</span>
-          </div>
-          <span className="text-sm text-gray-600">초 후 자동 저장</span>
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        <button
-          onClick={onSaveImmediately}
-          className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-        >
-          <Save className="w-4 h-4" />
-          즉시 저장
-        </button>
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          취소
-        </button>
-      </div>
+      {/* 취소 버튼 */}
+      <button
+        onClick={handleCancel}
+        className="flex-shrink-0 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+        title="취소"
+        aria-label="취소"
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }
-

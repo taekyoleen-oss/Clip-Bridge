@@ -61,10 +61,13 @@ export class ClipboardManager {
       this.timerId = null;
     }
 
-    // 새 타이머 시작
+    // 복사 감지 즉시 Toast 표시 (취소 버튼 생성)
     this.currentSeconds = 10;
     this.onClipDetected?.(text);
+    // 즉시 첫 번째 카운트다운 업데이트 (10초 표시)
+    this.onTimerUpdate?.(this.currentSeconds);
 
+    // 복사 시점부터 10초 카운트다운 시작
     this.timerId = setInterval(() => {
       this.currentSeconds--;
       this.onTimerUpdate?.(this.currentSeconds);

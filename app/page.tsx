@@ -33,11 +33,11 @@ export default function Home() {
     const platform = detectPlatform();
     setCurrentPlatform(platform === "Android" ? "Android" : "Windows");
 
-    // 클립보드 감지 이벤트
+    // 클립보드 감지 이벤트 - 즉시 Toast 표시 (취소 버튼 생성)
     clipboardManager.onClipDetectedCallback((text) => {
       setPendingText(text);
       setShowToast(true);
-      setCountdown(10);
+      setCountdown(10); // 초기값 10초 설정
     });
 
     // 타이머 업데이트
