@@ -10,12 +10,28 @@ export default function SupabaseStatus() {
 
   useEffect(() => {
     const checkSupabase = async () => {
+      // Next.js에서 클라이언트 사이드 환경 변수는 빌드 타임에 주입됨
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+      // 디버깅 정보 출력 (개발 환경에서만)
+      if (process.env.NODE_ENV === "development") {
+        console.log("환경 변수 확인:", {
+          url: url ? `${url.substring(0, 20)}...` : "없음",
+          key: key ? `${key.substring(0, 20)}...` : "없음",
+        });
+      }
+
       if (!url || !key) {
         setStatus("error");
-        setErrorMessage("환경 변수가 설정되지 않았습니다. Vercel 대시보드에서 환경 변수를 설정하세요.");
+        const missingVars = [];
+        if (!url) missingVars.push("NEXT_PUBLIC_SUPABASE_URL");
+        if (!key) missingVars.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+        
+        setErrorMessage(
+          `환경 변수가 설정되지 않았습니다: ${missingVars.join(", ")}. ` +
+          "Vercel 대시보드에서 환경 변수를 설정하고 재배포하세요."
+        );
         return;
       }
 
