@@ -24,8 +24,8 @@ export default function DeviceTabs({
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-2 mb-6 border border-gray-200">
-      <div className="flex gap-2">
+    <div className="bg-white rounded-lg shadow-md p-3 mb-6 border border-gray-200">
+      <div className="flex flex-col gap-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -35,7 +35,7 @@ export default function DeviceTabs({
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`
-                flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg
+                w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg
                 transition-all duration-200
                 ${
                   isActive
@@ -44,11 +44,13 @@ export default function DeviceTabs({
                 }
               `}
             >
-              {Icon && <Icon className="w-4 h-4" />}
-              <span className="font-medium">{tab.label}</span>
+              <div className="flex items-center gap-2">
+                {Icon && <Icon className="w-5 h-5" />}
+                <span className="font-medium text-base">{tab.label}</span>
+              </div>
               <span
                 className={`
-                  px-2 py-0.5 rounded-full text-xs font-semibold
+                  px-3 py-1 rounded-full text-sm font-semibold
                   ${
                     isActive
                       ? "bg-white/20 text-white"
