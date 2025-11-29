@@ -20,7 +20,7 @@ Vercel에 ClipBridge를 배포하는 방법과 문제 해결 가이드입니다.
 
 1. **Vercel 프로젝트 선택**
    - [Vercel Dashboard](https://vercel.com/dashboard) 접속
-   - ClipBridge 프로젝트 선택
+   - **clip-bridge** 프로젝트 선택
 
 2. **환경 변수 설정**
    - **Settings** 탭 클릭
@@ -152,4 +152,5 @@ ON public.clips FOR ALL USING (true) WITH CHECK (true);
 
 - [Vercel 환경 변수 문서](https://vercel.com/docs/concepts/projects/environment-variables)
 - [Supabase 공식 문서](https://supabase.com/docs)
+
 
