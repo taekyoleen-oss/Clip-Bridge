@@ -133,6 +133,37 @@ export default function Home() {
     };
   }, [activeTab, dbManager]);
 
+  // 페이지 visibility 변경 시 데이터 다시 로드 (모바일 대응)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // 페이지가 포그라운드로 돌아올 때 데이터 다시 로드
+        console.log("📱 페이지 포그라운드 복귀, 데이터 새로고침");
+        
+        // 통계 정보 로드
+        const loadStats = async () => {
+          const stats = await dbManager.getClipStats();
+          setWindowsCount(stats.windowsCount);
+          setAndroidCount(stats.androidCount);
+        };
+
+        // 클립 목록 새로고침
+        dbManager.refreshClips((newClips) => {
+          setClips(newClips);
+          loadStats();
+        }, activeTab);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
+    };
+  }, [dbManager, activeTab]);
+
   const handleSaveImmediately = () => {
     clipboardManager.saveImmediately();
   };

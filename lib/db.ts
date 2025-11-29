@@ -237,4 +237,12 @@ export class DatabaseManager {
   getUserId(): string | null {
     return this.userId;
   }
+
+  // 클립 목록 새로고침 (수동 호출용)
+  async refreshClips(
+    callback: (clips: ClipData[]) => void,
+    deviceFilter?: "all" | "Windows" | "Android"
+  ): Promise<void> {
+    await this.loadClips(callback, deviceFilter);
+  }
 }
