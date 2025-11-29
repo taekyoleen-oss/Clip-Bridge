@@ -11,10 +11,11 @@ export class ClipboardManager {
   private timerId: NodeJS.Timeout | null = null;
   private onClipDetected: ((text: string) => void) | null = null;
   private onTimerUpdate: ((seconds: number) => void) | null = null;
-  private onTimerComplete: (() => void) | null = null;
+  private onTimerComplete: ((text: string) => void) | null = null;
   private onTimerCancel: (() => void) | null = null;
   private currentSeconds: number = 10;
   private isPaused: boolean = false;
+  private currentClipText: string = "";
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -61,6 +62,9 @@ export class ClipboardManager {
       this.timerId = null;
     }
 
+    // 현재 클립 텍스트 저장
+    this.currentClipText = text;
+
     // 복사 감지 즉시 Toast 표시 (취소 버튼 생성)
     this.currentSeconds = 10;
     this.onClipDetected?.(text);
@@ -70,10 +74,13 @@ export class ClipboardManager {
     // 복사 시점부터 10초 카운트다운 시작
     this.timerId = setInterval(() => {
       this.currentSeconds--;
-      this.onTimerUpdate?.(this.currentSeconds);
-
+      
       if (this.currentSeconds <= 0) {
+        // 0초에 도달하면 마지막 업데이트 후 완료
+        this.onTimerUpdate?.(0);
         this.completeTimer();
+      } else {
+        this.onTimerUpdate?.(this.currentSeconds);
       }
     }, 1000);
   }
@@ -83,8 +90,11 @@ export class ClipboardManager {
       clearInterval(this.timerId);
       this.timerId = null;
     }
-    this.onTimerComplete?.();
+    // 저장할 텍스트를 콜백에 전달
+    const textToSave = this.currentClipText;
+    this.onTimerComplete?.(textToSave);
     this.currentSeconds = 10;
+    this.currentClipText = "";
   }
 
   // 즉시 저장 (타이머 스킵)
@@ -93,8 +103,10 @@ export class ClipboardManager {
       clearInterval(this.timerId);
       this.timerId = null;
     }
-    this.onTimerComplete?.();
+    const textToSave = this.currentClipText;
+    this.onTimerComplete?.(textToSave);
     this.currentSeconds = 10;
+    this.currentClipText = "";
   }
 
   // 타이머 취소
@@ -105,6 +117,7 @@ export class ClipboardManager {
     }
     this.onTimerCancel?.();
     this.currentSeconds = 10;
+    this.currentClipText = "";
   }
 
   // 일시정지/재개
@@ -121,7 +134,7 @@ export class ClipboardManager {
     this.onTimerUpdate = callback;
   }
 
-  onTimerCompleteCallback(callback: () => void) {
+  onTimerCompleteCallback(callback: (text: string) => void) {
     this.onTimerComplete = callback;
   }
 

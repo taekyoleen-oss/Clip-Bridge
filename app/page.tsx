@@ -43,16 +43,25 @@ export default function Home() {
     // 타이머 업데이트
     clipboardManager.onTimerUpdateCallback((seconds) => {
       setCountdown(seconds);
+      // 0초에 도달하면 Toast를 즉시 닫기 (완료 콜백이 호출되기 전에)
+      if (seconds <= 0) {
+        setShowToast(false);
+      }
     });
 
     // 타이머 완료 (저장)
-    clipboardManager.onTimerCompleteCallback(async () => {
-      if (pendingText) {
-        await dbManager.saveClip(pendingText, currentPlatform);
-        setShowToast(false);
-        setPendingText("");
-        setCountdown(10);
+    clipboardManager.onTimerCompleteCallback(async (text: string) => {
+      if (text && text.trim().length > 0) {
+        try {
+          await dbManager.saveClip(text, currentPlatform);
+        } catch (error) {
+          console.error("저장 실패:", error);
+        }
       }
+      // Toast 닫기 (저장 성공 여부와 관계없이)
+      setShowToast(false);
+      setPendingText("");
+      setCountdown(10);
     });
 
     // 타이머 취소
