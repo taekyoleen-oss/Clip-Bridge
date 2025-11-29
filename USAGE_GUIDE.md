@@ -210,3 +210,4 @@ Supabase 대시보드에서 데이터 확인:
 - 설정 가이드: [SUPABASE_QUICK_SETUP.md](./SUPABASE_QUICK_SETUP.md)
 - 문제 해결: 브라우저 콘솔(F12)에서 오류 확인
 
+

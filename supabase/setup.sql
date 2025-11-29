@@ -45,3 +45,4 @@ ALTER PUBLICATION supabase_realtime ADD TABLE clips;
 -- 3. pnpm dev로 개발 서버 실행
 -- ============================================
 
+

@@ -232,3 +232,4 @@ pnpm dev
 - [Supabase JavaScript 클라이언트](https://supabase.com/docs/reference/javascript/introduction)
 - [Row Level Security 가이드](https://supabase.com/docs/guides/auth/row-level-security)
 
+

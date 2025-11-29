@@ -152,3 +152,4 @@ supabase
 - [Supabase 설정 가이드](./SUPABASE_SETUP.md)
 - [Supabase 공식 문서](https://supabase.com/docs)
 
+

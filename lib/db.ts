@@ -24,8 +24,15 @@ export class DatabaseManager {
         return;
       }
 
-      // 익명 사용자로 로그인 (Supabase는 익명 인증을 지원하지 않으므로 로컬 스토리지 사용)
-      // 또는 익명 사용자를 위한 커스텀 구현
+      // 저장된 이메일이 있으면 이메일 기반 사용자 ID 사용
+      const savedEmail = this.getSavedEmail();
+      if (savedEmail) {
+        this.userId = this.generateUserIdFromEmail(savedEmail);
+        localStorage.setItem("clipbridge_user_id", this.userId);
+        return;
+      }
+
+      // 이메일이 없으면 기본 사용자 ID 생성
       this.userId = localStorage.getItem("clipbridge_user_id") || this.generateUserId();
       localStorage.setItem("clipbridge_user_id", this.userId);
 
@@ -34,6 +41,15 @@ export class DatabaseManager {
       // 실제 인증이 필요한 경우 Supabase Auth를 사용할 수 있습니다.
     } catch (error) {
       console.error("인증 실패:", error);
+      
+      // 저장된 이메일이 있으면 이메일 기반 사용자 ID 사용
+      const savedEmail = this.getSavedEmail();
+      if (savedEmail) {
+        this.userId = this.generateUserIdFromEmail(savedEmail);
+        localStorage.setItem("clipbridge_user_id", this.userId);
+        return;
+      }
+      
       // 로컬 스토리지에서 사용자 ID 가져오기 (폴백)
       this.userId = localStorage.getItem("clipbridge_user_id") || this.generateUserId();
       localStorage.setItem("clipbridge_user_id", this.userId);
@@ -42,6 +58,40 @@ export class DatabaseManager {
 
   private generateUserId(): string {
     return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // 이메일 기반으로 사용자 ID 생성 (같은 이메일이면 같은 ID)
+  private generateUserIdFromEmail(email: string): string {
+    // 이메일을 해시하여 일관된 사용자 ID 생성
+    // 간단한 해시 함수 사용 (실제로는 crypto API 사용 권장)
+    let hash = 0;
+    const emailLower = email.toLowerCase().trim();
+    for (let i = 0; i < emailLower.length; i++) {
+      const char = emailLower.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 32bit 정수로 변환
+    }
+    // 음수 방지
+    const positiveHash = Math.abs(hash).toString(36);
+    return `user_email_${positiveHash}`;
+  }
+
+  // 이메일로 사용자 ID 설정
+  setUserIdFromEmail(email: string) {
+    const userId = this.generateUserIdFromEmail(email);
+    this.setUserId(userId);
+    // 이메일도 저장하여 나중에 표시 가능
+    if (typeof window !== "undefined") {
+      localStorage.setItem("clipbridge_user_email", email.toLowerCase().trim());
+    }
+  }
+
+  // 저장된 이메일 가져오기
+  getSavedEmail(): string | null {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("clipbridge_user_email");
+    }
+    return null;
   }
 
   async saveClip(text: string, device: string = "Windows"): Promise<string> {

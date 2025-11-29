@@ -151,3 +151,4 @@ heartbeat.stop();
 - [Supabase 공식 문서 - 프로젝트 일시 중지](https://supabase.com/docs/guides/platform/project-pause)
 - [Supabase 가격 정책](https://supabase.com/pricing)
 
+

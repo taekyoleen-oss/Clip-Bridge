@@ -50,3 +50,4 @@ export function isWindowsPlatform(): boolean {
   return detectPlatform() === "Windows";
 }
 
+

@@ -75,3 +75,4 @@
 - 빠른 설정 가이드: [SUPABASE_QUICK_SETUP.md](./SUPABASE_QUICK_SETUP.md)
 - 상세 설정 가이드: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 
+

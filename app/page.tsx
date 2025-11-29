@@ -10,7 +10,7 @@ import ClipboardPermission from "@/components/ClipboardPermission";
 import SupabaseStatus from "@/components/SupabaseStatus";
 import DeviceTabs, { DeviceFilter } from "@/components/DeviceTabs";
 import ManualInput from "@/components/ManualInput";
-import UserIdSync from "@/components/UserIdSync";
+import EmailSync from "@/components/EmailSync";
 import { getHeartbeat } from "@/lib/heartbeat";
 import { detectPlatform } from "@/lib/platform";
 
@@ -27,7 +27,7 @@ export default function Home() {
   const [windowsCount, setWindowsCount] = useState(0);
   const [androidCount, setAndroidCount] = useState(0);
   const [backgroundSaveMessage, setBackgroundSaveMessage] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
 
   useEffect(() => {
     // Supabase Heartbeat 시작 (프로젝트 일시 중지 방지)
@@ -107,20 +107,23 @@ export default function Home() {
 
     loadStats();
 
-    // 사용자 ID 가져오기
-    setCurrentUserId(dbManager.getUserId());
+    // 저장된 이메일 가져오기
+    const savedEmail = dbManager.getSavedEmail();
+    setCurrentEmail(savedEmail);
 
-    // URL 파라미터에서 사용자 ID 확인
+    // URL 파라미터에서 이메일 확인
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const userIdFromUrl = params.get("userId");
-      if (userIdFromUrl && userIdFromUrl !== dbManager.getUserId()) {
-        // URL 파라미터로 전달된 사용자 ID가 있으면 적용
-        dbManager.setUserId(userIdFromUrl);
-        setCurrentUserId(userIdFromUrl);
-        localStorage.setItem("clipbridge_user_id", userIdFromUrl);
+      const emailFromUrl = params.get("email");
+      if (emailFromUrl && emailFromUrl !== savedEmail) {
+        // URL 파라미터로 전달된 이메일이 있으면 적용
+        dbManager.setUserIdFromEmail(emailFromUrl);
+        setCurrentEmail(emailFromUrl.toLowerCase().trim());
         // 페이지 새로고침하여 구독 재시작
         window.location.href = window.location.pathname;
+      } else if (!savedEmail) {
+        // 저장된 이메일이 없으면 기본 사용자 ID 사용
+        setCurrentEmail(null);
       }
     }
 
@@ -150,7 +153,7 @@ export default function Home() {
     return () => {
       unsubscribe();
     };
-  }, [activeTab, dbManager, currentUserId]);
+  }, [activeTab, dbManager, currentEmail]);
 
   // 페이지 visibility 변경 시 데이터 다시 로드 (모바일 대응)
   useEffect(() => {
@@ -254,11 +257,11 @@ export default function Home() {
         <SupabaseStatus />
         <ClipboardPermission />
 
-        <UserIdSync
-          currentUserId={currentUserId}
-          onUserIdChange={(userId) => {
-            dbManager.setUserId(userId);
-            setCurrentUserId(userId);
+        <EmailSync
+          currentEmail={currentEmail}
+          onEmailChange={(email) => {
+            dbManager.setUserIdFromEmail(email);
+            setCurrentEmail(email.toLowerCase().trim());
           }}
         />
 

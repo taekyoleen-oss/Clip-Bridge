@@ -29,3 +29,4 @@ WITH CHECK (true);
 -- Realtime 활성화
 ALTER PUBLICATION supabase_realtime ADD TABLE clips;
 
+

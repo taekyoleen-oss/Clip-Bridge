@@ -89,3 +89,4 @@ export function getHeartbeat(): SupabaseHeartbeat {
   return heartbeatInstance;
 }
 
+
