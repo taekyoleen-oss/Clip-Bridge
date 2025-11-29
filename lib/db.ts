@@ -238,6 +238,14 @@ export class DatabaseManager {
     return this.userId;
   }
 
+  // 사용자 ID 변경
+  setUserId(userId: string) {
+    this.userId = userId;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("clipbridge_user_id", userId);
+    }
+  }
+
   // 클립 목록 새로고침 (수동 호출용)
   async refreshClips(
     callback: (clips: ClipData[]) => void,

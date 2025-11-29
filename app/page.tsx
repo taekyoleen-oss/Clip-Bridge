@@ -10,6 +10,7 @@ import ClipboardPermission from "@/components/ClipboardPermission";
 import SupabaseStatus from "@/components/SupabaseStatus";
 import DeviceTabs, { DeviceFilter } from "@/components/DeviceTabs";
 import ManualInput from "@/components/ManualInput";
+import UserIdSync from "@/components/UserIdSync";
 import { getHeartbeat } from "@/lib/heartbeat";
 import { detectPlatform } from "@/lib/platform";
 
@@ -26,6 +27,7 @@ export default function Home() {
   const [windowsCount, setWindowsCount] = useState(0);
   const [androidCount, setAndroidCount] = useState(0);
   const [backgroundSaveMessage, setBackgroundSaveMessage] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     // Supabase Heartbeat 시작 (프로젝트 일시 중지 방지)
@@ -105,12 +107,29 @@ export default function Home() {
 
     loadStats();
 
+    // 사용자 ID 가져오기
+    setCurrentUserId(dbManager.getUserId());
+
+    // URL 파라미터에서 사용자 ID 확인
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const userIdFromUrl = params.get("userId");
+      if (userIdFromUrl && userIdFromUrl !== dbManager.getUserId()) {
+        // URL 파라미터로 전달된 사용자 ID가 있으면 적용
+        dbManager.setUserId(userIdFromUrl);
+        setCurrentUserId(userIdFromUrl);
+        localStorage.setItem("clipbridge_user_id", userIdFromUrl);
+        // 페이지 새로고침하여 구독 재시작
+        window.location.href = window.location.pathname;
+      }
+    }
+
     return () => {
       heartbeat.stop();
     };
   }, [clipboardManager, dbManager, pendingText, currentPlatform]);
 
-  // 탭 변경 시 데이터 다시 로드
+  // 탭 변경 및 사용자 ID 변경 시 데이터 다시 로드
   useEffect(() => {
     // 통계 정보 로드
     const loadStats = async () => {
@@ -131,7 +150,7 @@ export default function Home() {
     return () => {
       unsubscribe();
     };
-  }, [activeTab, dbManager]);
+  }, [activeTab, dbManager, currentUserId]);
 
   // 페이지 visibility 변경 시 데이터 다시 로드 (모바일 대응)
   useEffect(() => {
@@ -234,6 +253,14 @@ export default function Home() {
 
         <SupabaseStatus />
         <ClipboardPermission />
+
+        <UserIdSync
+          currentUserId={currentUserId}
+          onUserIdChange={(userId) => {
+            dbManager.setUserId(userId);
+            setCurrentUserId(userId);
+          }}
+        />
 
         {backgroundSaveMessage && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center justify-between animate-fade-in">
